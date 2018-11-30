@@ -1,18 +1,15 @@
 package com.brianway.webporter.collector.zhihu.download;
 
 import com.brianway.webporter.collector.zhihu.ZhihuConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.brianway.webporter.util.StringHelper;
 import us.codecraft.webmagic.Page;
 import us.codecraft.webmagic.Site;
 import us.codecraft.webmagic.Spider;
-import us.codecraft.webmagic.pipeline.FilePipeline;
 import us.codecraft.webmagic.processor.PageProcessor;
-import us.codecraft.webmagic.scheduler.component.BloomFilterDuplicateRemover;
+import us.codecraft.webmagic.scheduler.BloomFilterDuplicateRemover;
+import us.codecraft.webmagic.scheduler.FileCacheQueueScheduler;
 import us.codecraft.webmagic.selector.Json;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,21 +17,17 @@ import java.util.List;
  * Created by brian on 16/11/24.
  *
  * 爬取知乎用户的关注者
+ * step 1: 运行该类的 main 方法开始爬取
  */
 public class ZhihuFolloweePageProcessor implements PageProcessor {
-    private static Logger logger = LoggerFactory.getLogger(ZhihuFolloweePageProcessor.class);
-
-    private static String URL_TEMPLATE = "https://www.zhihu.com/api/v4/members/%s/followees";
-
-    private static String QUERY_PARAMS = "?include=data%5B*%5D.url_token&offset=0&per_page=30&limit=30";
 
     private Site site = new ZhihuConfiguration().getSite();
 
     public void process(Page page) {
         Json json = page.getJson();
         //System.out.println(json);
-
-        page.putField("seg", json);
+        page.putField(ZhihuPipeline.URL, page.getUrl());
+        page.putField(ZhihuPipeline.RESPONSE, json);
 
         String isEnd = json.jsonPath("$.paging.is_end").get();
         if (!Boolean.parseBoolean(isEnd)) {
@@ -42,7 +35,7 @@ public class ZhihuFolloweePageProcessor implements PageProcessor {
         }
 
         List<String> urlTokens = json.jsonPath("$.data[*].url_token").all();
-        List<String> urls = generateMemberUrls(urlTokens);
+        List<String> urls = generateFolloweeUrls(urlTokens);
         page.addTargetRequests(urls);
     }
 
@@ -50,36 +43,33 @@ public class ZhihuFolloweePageProcessor implements PageProcessor {
         return site;
     }
 
-    private static String generateMemberUrl(String urlToken) {
-        String encoded = null;
-        try {
-            encoded = URLEncoder.encode(urlToken, "UTF-8").replace("+", "%20");
-        } catch (UnsupportedEncodingException e) {
-            logger.error("URLEncode error {}", e);
-        }
+    public static String generateFolloweeUrl(String urlToken) {
+        final String URL_TEMPLATE = "https://www.zhihu.com/api/v4/members/%s/followees";
+        final String QUERY_PARAMS = "?include=data%5B*%5D.url_token&offset=0&per_page=30&limit=30";
+
+        String encoded = StringHelper.urlEncode(urlToken);
         return String.format(URL_TEMPLATE, encoded) + QUERY_PARAMS;
     }
 
-    private static List<String> generateMemberUrls(List<String> urlTokens) {
-        List<String> urls = new ArrayList<String>(20);
-        for (String urlToken : urlTokens) {
-            urls.add(generateMemberUrl(urlToken));
-        }
+    public static List<String> generateFolloweeUrls(List<String> urlTokens) {
+        List<String> urls = new ArrayList<>(20);
+        urlTokens.stream().map(ZhihuFolloweePageProcessor::generateFolloweeUrl).forEach(urls::add);
         return urls;
     }
 
     /**
      * 下载关注列表的用户数据,用于提取 url_tokens
+     * @param args 无须其他参数
      */
     public static void main(String[] args) {
         String pipelinePath = new ZhihuConfiguration().getFolloweePath();
-        int crawlSize = 1000000;
+        int crawlSize = 100_0000;
         Spider.create(new ZhihuFolloweePageProcessor())
                 .setScheduler(//new QueueScheduler()
-                        new FixedFileCacheQueueScheduler(pipelinePath)
+                        new FileCacheQueueScheduler(pipelinePath)
                                 .setDuplicateRemover(new BloomFilterDuplicateRemover(crawlSize)))
-                .addPipeline(new FilePipeline(pipelinePath))
-                .addUrl(generateMemberUrl("hydro-ding"))
+                .addPipeline(new ZhihuPipeline(pipelinePath))
+                .addUrl(generateFolloweeUrl("hydro-ding"))
                 .thread(20)
                 .run();
     }

@@ -1,18 +1,15 @@
 package com.brianway.webporter.data;
 
+import com.brianway.webporter.BaseTest;
 import org.junit.Assert;
 import org.junit.Test;
 
-/**
- * Created by brian on 16/11/30.
- */
-public class FileRawInputTest {
+public class FileRawInputTest extends BaseTest {
     @Test
     public void testListFiles() {
-        String path = "/Users/brian/Desktop/zhihu/20161124/www.zhihu.com";
-        //String path = "/Users/brian/todo/data/webmagic/www.zhihu.com";
-        RawInput raw = new FileRawInput(path);
+        RawInput raw = new FileRawInput(rootDir);
+        int expectedLeft = 2;
         int left = raw.getLeftCount();
-        System.out.println(left);
+        Assert.assertEquals(expectedLeft, left);
     }
 }

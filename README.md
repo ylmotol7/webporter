@@ -71,7 +71,7 @@ webporter 的 github 地址：[https://github.com/brianway/webporter](https://gi
       "authorization": "Your own authorization here."
     },
     "retryTimes": 3,
-    "sleepTime": 10
+    "sleepTime": 500
   },
   "base_dir": "/Users/brian/todo/data/zhihu/"
 }
@@ -89,12 +89,19 @@ webporter 的 github 地址：[https://github.com/brianway/webporter](https://gi
 依次运行 `webporter-collector-zhihu` 模块的下面两个类的 `main` 方法即可。(*注意：由于这两个阶段是串行的,不要同时启动这两个类*)
 
 - [`ZhihuFolloweePageProcessor`](/webporter-collector-zhihu/src/main/java/com/brianway/webporter/collector/zhihu/download/ZhihuFolloweePageProcessor.java):该类用于从知乎下载用户信息，下载的数据可以复制粘贴在 [在线 json 格式化工具](http://tool.oschina.net/codeformat/json)中查看
-- [`FolloweeUploader`](/webporter-collector-zhihu/src/main/java/com/brianway/webporter/collector/zhihu/upload/FolloweeUploader.java):该类用户将用户信息上传到 Elasticsearch (需要提前安装并运行 Elasticsearch)，知乎数据的 index 名称为 `zhihu`
+- [`FolloweeUploader`](/webporter-collector-zhihu/src/main/java/com/brianway/webporter/collector/zhihu/upload/FolloweeUploader.java):该类用于将用户信息上传到 Elasticsearch (需要提前安装并运行 Elasticsearch)，知乎数据的 index 名称为 `zhihu`
 
 
 3.可视化
 
 安装好 [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/5.0/index.html) 和 [Kibana](https://www.elastic.co/guide/en/kibana/5.0/index.html) 后，在 Kibana 中使用 Visualize 对数据可视化即可
+
+## 赞助
+
+如果您觉得该项目对您有帮助，请扫描下方二维码对我进行鼓励，以便我更好的维护和更新，谢谢支持！
+
+![支付宝](http://brianway.github.io/assets/images/alipay_small.png)
+![微信](http://brianway.github.io/assets/images/wechatpay_small.png)
 
 
 ## TODO

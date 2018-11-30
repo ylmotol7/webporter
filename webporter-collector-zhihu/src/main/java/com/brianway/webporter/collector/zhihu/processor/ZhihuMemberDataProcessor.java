@@ -1,34 +1,31 @@
 package com.brianway.webporter.collector.zhihu.processor;
 
-import com.brianway.webporter.collector.zhihu.SegmentReader;
 import com.brianway.webporter.collector.zhihu.ZhihuConfiguration;
 import com.brianway.webporter.data.BaseAssembler;
 import com.brianway.webporter.data.ConsoleOutpipeline;
 import com.brianway.webporter.data.DataProcessor;
 import com.brianway.webporter.data.FileRawInput;
 import com.brianway.webporter.data.HashSetDuplicateRemover;
-import com.brianway.webporter.data.OutPipeline;
 import com.brianway.webporter.data.elasticsearch.Document;
+import com.brianway.webporter.util.FileHelper;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import us.codecraft.webmagic.selector.Json;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
- * Created by brian on 16/12/19.
+ * 从原始数据生成满足 Elasticsearch 格式的 json 数据
  */
 public class ZhihuMemberDataProcessor implements DataProcessor<File, Document> {
-    private static final Logger logger = LoggerFactory.getLogger(ZhihuMemberDataProcessor.class);
 
     private HashSetDuplicateRemover<String> duplicateRemover = new HashSetDuplicateRemover<>();
 
     @Override
     public List<Document> process(File inItem) {
-        String s = SegmentReader.readMember(inItem);
+        String s = readMember(inItem);
         List<Document> documents = null;
 
         if (!StringUtils.isEmpty(s)) {
@@ -42,6 +39,16 @@ public class ZhihuMemberDataProcessor implements DataProcessor<File, Document> {
         return documents;
     }
 
+    public static String readMember(File inItem) {
+        List<String> followees = FileHelper.processFile(inItem, br -> {
+            br.readLine();//pass first line
+            String s = br.readLine();
+            return Collections.singletonList(s);
+        }).orElse(new ArrayList<>());
+
+        return followees.size() == 0 ? null : followees.get(0);
+    }
+
     public static void main(String[] args) {
         ZhihuConfiguration configuration = new ZhihuConfiguration();
         String folder = configuration.getMemberDataPath();
@@ -49,12 +56,8 @@ public class ZhihuMemberDataProcessor implements DataProcessor<File, Document> {
         ConsoleOutpipeline<Document> outPipeline = new ConsoleOutpipeline<>();
 
         BaseAssembler.create(new FileRawInput(folder), processor)
-                .addOutPipeline(new OutPipeline<Document>() {
-                    @Override
-                    public void process(Document outItem) {
-
-                    }
-                })
+                .addOutPipeline(i -> {
+                }) // 需要打印时替换为 outPipeline
                 .thread(10)
                 .run();
 

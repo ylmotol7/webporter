@@ -1,20 +1,11 @@
 package com.brianway.webporter.collector.zhihu;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
-import com.brianway.webporter.configure.AbstractConfiguration;
-import us.codecraft.webmagic.Site;
+import com.brianway.webporter.configure.BasicConfiguration;
 
-import java.io.File;
+public class ZhihuConfiguration extends BasicConfiguration {
 
-/**
- * Created by brian on 16/12/19.
- */
-public class ZhihuConfiguration extends AbstractConfiguration {
-
-    private Site site;
-
-    private String baseDir;
+    public static final String SUBDIR_MEMBER = "member/";
+    public static final String SUBDIR_FOLLOWEE = "followee/";
 
     public ZhihuConfiguration(String path) {
         super(path);
@@ -24,38 +15,12 @@ public class ZhihuConfiguration extends AbstractConfiguration {
 
     }
 
-    @Override
-    protected void resolve() {
-        JSONObject jsonObject = JSON.parseObject(config);
-        site = JSON.parseObject(jsonObject.getString("site"), Site.class);
-        checkAndMakeBaseDir(jsonObject.getString("base_dir"));
-    }
-
-    private void checkAndMakeBaseDir(String direcotry) {
-        baseDir = direcotry;
-        if (!direcotry.endsWith("/")) {
-            baseDir = direcotry + "/";
-        }
-        File file = new File(baseDir);
-        if (!file.exists()) {
-            file.mkdirs();
-        }
-    }
-
-    public String getBaseDir() {
-        return baseDir;
-    }
-
-    public Site getSite() {
-        return site;
-    }
-
     public String getMemberPath() {
-        return getBaseDir() + "member/";
+        return getBaseDir() + SUBDIR_MEMBER;
     }
 
     public String getFolloweePath() {
-        return getBaseDir() + "followee/";
+        return getBaseDir() + SUBDIR_FOLLOWEE;
     }
 
     public String getMemberDataPath() {

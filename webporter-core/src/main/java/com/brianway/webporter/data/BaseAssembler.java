@@ -4,15 +4,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import us.codecraft.webmagic.thread.CountableThreadPool;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by brian on 16/12/8.
+ * 数据处理框架的核心组装类
+ * 用于拼接输入,处理逻辑和输出,进行线程设置
  */
 public class BaseAssembler<IN, OUT> {
     private static final Logger logger = LoggerFactory.getLogger(BaseAssembler.class);
@@ -25,7 +25,7 @@ public class BaseAssembler<IN, OUT> {
 
     protected List<OutPipeline<OUT>> outPipelines = new ArrayList<>();
 
-    protected ExecutorService executorService;
+//    protected ExecutorService executorService;
 
     protected CountableThreadPool threadPool;
 
@@ -44,8 +44,10 @@ public class BaseAssembler<IN, OUT> {
     /**
      * 工厂方法
      *
+     * @param rawInput 原始输入
+     * @param dataProcessor 数据处理的类
      * @param <IN> 输入队列的类型参数
-     * @param <OUT> 输出队列的类型参数
+     * @param <OUT> 输出数据的类型参数
      * @return 组装类的实例
      */
     public static <IN, OUT> BaseAssembler<IN, OUT> create(
@@ -85,28 +87,27 @@ public class BaseAssembler<IN, OUT> {
                     break;
                 }
             } else {
-                threadPool.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            processInItem(inItem);
-                        } catch (Exception e) {
-                            logger.error("error: " + inItem, e);
-                        } finally {
-                            inItemCount.incrementAndGet();
-                        }
+                threadPool.execute(() -> {
+                    try {
+                        processInItem(inItem);
+                    } catch (Exception e) {
+                        logger.error("error: " + inItem, e);
+                    } finally {
+                        inItemCount.incrementAndGet();
                     }
                 });
             }
         }
+
         stat.set(STAT_STOPPED);
         long endTime = System.currentTimeMillis();
         logger.info("Process end. spent {} ms", (endTime - startTime));
+
         // release some resources
         close();
 
         endTime = System.currentTimeMillis();
-        logger.info("Total time: {}", endTime - startTime);
+        logger.info("Total time: {} ms", endTime - startTime);
         logger.info("Total outItemCount: {}", outItemCount);
     }
 
@@ -117,10 +118,7 @@ public class BaseAssembler<IN, OUT> {
         }
 
         outItemCount.addAndGet(outItems.size());
-
-        for (OutPipeline<OUT> outPipeline : outPipelines) {
-            outPipeline.process(outItems);
-        }
+        outPipelines.forEach(outPipeline -> outPipeline.process(outItems));
     }
 
     private void checkRunningStat() {
@@ -143,9 +141,7 @@ public class BaseAssembler<IN, OUT> {
 
     public void close() {
         destroyEach(dataProcessor);
-        for (OutPipeline<OUT> outPipeline : outPipelines) {
-            destroyEach(outPipeline);
-        }
+        outPipelines.forEach(this::destroyEach);
         threadPool.shutdown();
     }
 
@@ -178,20 +174,16 @@ public class BaseAssembler<IN, OUT> {
 
     public static void main(String[] args) {
 
-        //String folder = "/Users/brian/todo/data/webmagic/www.zhihu.com";
         String folder = "/Users/brian/Desktop/zhihu/20161124/www.zhihu.com";
 
         OutPipeline<String> outPipeline = new ConsoleOutpipeline<>();
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                BaseAssembler.<File, String>create(
-                        new FileRawInput(folder), new DemoDataProcessor())
-                        .addOutPipeline(outPipeline)
-                        .thread(10)
-                        .run();
-            }
+        new Thread(() -> {
+            BaseAssembler.create(
+                    new FileRawInput(folder), new DemoDataProcessor())
+                    .addOutPipeline(outPipeline)
+                    .thread(10)
+                    .run();
         }).start();
 
     }

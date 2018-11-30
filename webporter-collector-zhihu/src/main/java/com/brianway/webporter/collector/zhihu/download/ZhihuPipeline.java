@@ -17,20 +17,20 @@ import java.util.Map;
  * Created by brian on 16/12/18.
  * 用户详细信息的 pipeline
  */
-public class ZhihuMemberPipeline extends FilePipeline {
+public class ZhihuPipeline extends FilePipeline {
     private Logger logger = LoggerFactory.getLogger(getClass());
 
-    public static final String URL = "url";
-    public static final String RESPONSE = "response";
+    static final String URL = "url";
+    static final String RESPONSE = "response";
 
     /**
-     * create a ZhihuMemberPipeline with default path"/data/webmagic/"
+     * create a ZhihuPipeline with default path"/data/webporter/"
      */
-    public ZhihuMemberPipeline() {
-        setPath("/data/webmagic/");
+    public ZhihuPipeline() {
+        setPath("/data/webporter/");
     }
 
-    public ZhihuMemberPipeline(String path) {
+    public ZhihuPipeline(String path) {
         setPath(path);
     }
 
